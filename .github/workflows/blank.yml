@@ -1,0 +1,96 @@
+CREATE TABLE customer_revenue (
+	customer_name varchar (100),
+	revenue_jan DECIMAL(10,0),
+    revenue_feb DECIMAL(10,0),
+    revenue_mar DECIMAL(10,0),
+	revenue_april DECIMAL(10,0),
+	revenue_may DECIMAL(10,0),
+	revenue_june DECIMAL(10,0),
+	revenue_july DECIMAL(10,0),
+	revenue_aug DECIMAL(10,0),
+	revenue_sept DECIMAL(10,0),
+	revenue_oct DECIMAL(10,0),
+	revenue_nov DECIMAL(10,0),
+	revenue_dec DECIMAL(10,0));
+	
+
+
+COPY customer_revenue (customer_name, revenue_jan, revenue_feb, revenue_mar, revenue_april, revenue_may, revenue_june, revenue_july, revenue_aug, revenue_sept, revenue_oct, revenue_nov, revenue_Dec)
+-- replaced my directory name with placeholder
+FROM [MY DIRECTPRY] 
+WITH (FORMAT CSV, HEADER);
+
+
+
+
+WITH cohort_items AS (
+  SELECT
+    customer_name,
+    CASE
+      WHEN revenue_jan > 0 THEN 'January'
+      WHEN revenue_feb > 0 THEN 'February'
+      WHEN revenue_mar > 0 THEN 'March'
+      WHEN revenue_april > 0 THEN 'April'
+      WHEN revenue_may > 0 THEN 'May'
+      WHEN revenue_june > 0 THEN 'June'
+      WHEN revenue_july > 0 THEN 'July'
+      WHEN revenue_aug > 0 THEN 'August'
+      WHEN revenue_sept > 0 THEN 'September'
+      WHEN revenue_oct > 0 THEN 'October'
+      WHEN revenue_nov > 0 THEN 'November'
+      WHEN revenue_dec > 0 THEN 'December'
+    END AS cohort_month
+  FROM customer_revenue
+),
+cohort_size AS (
+  SELECT cohort_month, COUNT(DISTINCT customer_name) AS num_customers
+  FROM cohort_items
+  GROUP BY 1
+  ORDER BY MIN(CASE cohort_month
+                  WHEN 'January' THEN 1
+                  WHEN 'February' THEN 2
+                  WHEN 'March' THEN 3
+                  WHEN 'April' THEN 4
+                  WHEN 'May' THEN 5
+                  WHEN 'June' THEN 6
+                  WHEN 'July' THEN 7
+                  WHEN 'August' THEN 8
+                  WHEN 'September' THEN 9
+                  WHEN 'October' THEN 10
+                  WHEN 'November' THEN 11
+                  WHEN 'December' THEN 12
+              END)
+),
+B AS (
+  SELECT
+    C.cohort_month,
+    COUNT(DISTINCT C.customer_name) AS num_customers
+  FROM cohort_items C
+  WHERE EXISTS (
+    SELECT 1
+    FROM cohort_items
+    WHERE cohort_month = C.cohort_month
+      AND customer_name = C.customer_name  )
+  GROUP BY C.cohort_month
+)
+SELECT
+  B.cohort_month,
+  S.num_customers AS total_customers,
+  (B.num_customers::float / S.num_customers::float) * 100 AS percentage
+FROM B
+LEFT JOIN cohort_size S ON B.cohort_month = S.cohort_month
+WHERE B.cohort_month IS NOT NULL
+ORDER BY MIN(CASE B.cohort_month
+                WHEN 'January' THEN 1
+                WHEN 'February' THEN 2
+                WHEN 'March' THEN 3
+                WHEN 'April' THEN 4
+                WHEN 'May' THEN 5
+                WHEN 'June' THEN 6
+                WHEN 'July' THEN 7
+                WHEN 'August' THEN 8
+                WHEN 'September' THEN 9
+                WHEN 'October' THEN 10
+                WHEN 'November' THEN 11
+                WHEN 'December' THEN 12
+            END);
